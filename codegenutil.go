@@ -46,7 +46,7 @@ func (p *Package) Name() string { return p.name }
 
 // Symbol returns a new Symbol within the given package.
 func (p *Package) Symbol(idName string) *Symbol {
-	return &Symbol{}
+	return &Symbol{p, idName}
 }
 
 // FileImports captures information about import entries in a Go file and the
@@ -99,6 +99,18 @@ func CustomPackageNameSuggester(fn func(pkg *Package, tryImportSpec func(localPa
 	}
 }
 
+// WithImports returns an option that add all of the provided package to the
+// returned *FileImports.
+func WithImports(pkgs ...*Package) FileImportsOption {
+	return FileImportsOption{
+		func(fi *FileImports) {
+			for _, x := range pkgs {
+				fi.Add(x, "")
+			}
+		},
+	}
+}
+
 // NewFileImports returns a new *FileImports object with no imports.
 func NewFileImports(p *Package, opts ...FileImportsOption) *FileImports {
 	fi := &FileImports{
@@ -134,6 +146,9 @@ func (fi *FileImports) Find(p *Package) *ImportSpec {
 // If the package name or alias conflicts with an existing import, an alias will
 // be generated.
 func (fi *FileImports) Add(pkg *Package, alias string) *ImportSpec {
+	fi.rwMutex.Lock()
+	defer fi.rwMutex.Unlock()
+
 	existingSpec := fi.byImportPath[pkg.ImportPath()]
 	if existingSpec != nil {
 		return existingSpec
@@ -200,12 +215,15 @@ func (s *Symbol) Package() *Package { return s.pkg }
 // symbol
 func (s *Symbol) Name() string { return s.name }
 
-// Format formats the symbol in a given printing context.
+// FormatEnsureImported formats the symbol in a given printing context.
 //
 // The Imports argument is the set of imports currently imported in the file. If
 // the symbol's import is not in the set of import specs.
-func (s *Symbol) Format(imports *FileImports) string {
-	panic(s)
+func (s *Symbol) FormatEnsureImported(imports *FileImports) string {
+	if s.Package().ImportPath() == imports.filePackage.ImportPath() {
+		return s.Name()
+	}
+	return imports.Add(s.Package(), "").pkg.name + "." + s.Name()
 }
 
 // AssumedPackageName returns the assumed name of the package according the

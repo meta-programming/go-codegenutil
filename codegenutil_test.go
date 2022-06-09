@@ -40,3 +40,33 @@ func pkgEqual(a, b *Package) bool {
 	}
 	return a.importPath == b.importPath && a.name == b.name
 }
+
+func TestSymbol_FormatEnsureImported(t *testing.T) {
+	type example struct {
+		name    string
+		sym     *Symbol
+		imports *FileImports
+		want    string
+	}
+	tests := []example{
+		{
+			name:    "simple1",
+			sym:     AssumedPackageName("abc/xyz").Symbol("Foo"),
+			imports: NewFileImports(AssumedPackageName("bar")),
+			want:    "xyz.Foo",
+		},
+		{
+			name:    "symbol in package of file",
+			sym:     AssumedPackageName("abc/xyz").Symbol("Foo"),
+			imports: NewFileImports(AssumedPackageName("abc/xyz")),
+			want:    "Foo",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.sym.FormatEnsureImported(tt.imports); got != tt.want {
+				t.Errorf("%v.FormatEnsureImported() = %q, want %q", tt.sym, got, tt.want)
+			}
+		})
+	}
+}
