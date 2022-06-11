@@ -34,7 +34,7 @@ import (
 
 func example() {
     // Parse the template.
-    template, err := codetemplate.Parse("mypkg.go", `// Package mypkg does neat things.
+    template, err := codetemplate.Parse(`// Package mypkg does neat things.
 {{header}}
 
 import "automaticallyremoved"

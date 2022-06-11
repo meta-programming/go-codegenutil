@@ -50,7 +50,7 @@ var myThing2 = math2.Max
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpl, err := Parse(tt.name, tt.template)
+			tmpl, err := Parse(tt.template)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Errorf("Parse got error %v, wantErr = %v", err, tt.wantErr)
 			}

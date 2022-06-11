@@ -38,13 +38,30 @@ func KeepUnusedImports() Option {
 	return Option{func(t *Template) { t.formatter = nil }}
 }
 
+// WithName specifies the name of the text template creates.
+func WithName(templateName string) Option {
+	return Option{func(t *Template) { t.templateName = templateName }}
+}
+
+// WithFuncs specifies the name of the text template creates.
+func WithFuncs(funcs template.FuncMap) Option {
+	return Option{func(t *Template) {
+		t.transformers = append(t.transformers, func(tmpl *template.Template) {
+			tmpl.Funcs(funcs)
+		})
+	}}
+}
+
 // Template is a Go code generation template. See Parse() for details.
 type Template struct {
 	tt                 *template.Template
 	importsPlaceholder string
 	headerPlaceholder  string
 
-	formatter func(filename, code string) (string, error)
+	templateName string
+	// called in successon on the template during construction
+	transformers []func(tmpl *template.Template)
+	formatter    func(filename, code string) (string, error)
 }
 
 // Parse returns a new template by passing tmplText to the parser in
@@ -60,7 +77,7 @@ type Template struct {
 //             A function that takes no arguments and outputs a package statement
 //             and imports block, a.ka. PackageClause and ImportDecl in the Go spec:
 //             https://go.dev/ref/spec#SourceFile.
-func Parse(name, tmplText string) (*Template, error) {
+func Parse(tmplText string, opts ...Option) (*Template, error) {
 	h := sha256.New()
 	h.Write([]byte(tmplText))
 	importsPlaceholder := fmt.Sprintf("<PLACEHOLDER FOR IMPORTS %x>", h.Sum(nil))
@@ -70,8 +87,18 @@ func Parse(name, tmplText string) (*Template, error) {
 		importsPlaceholder: importsPlaceholder,
 		headerPlaceholder:  headerPlaceholder,
 		formatter:          unusedimports.PruneUnparsed,
+		templateName:       "generated.go",
 	}
-	t, err := template.New(name).Funcs(template.FuncMap{
+	for _, opt := range opts {
+		opt.apply(out)
+	}
+
+	t := template.New(out.templateName)
+	for _, transformer := range out.transformers {
+		transformer(t)
+	}
+
+	t, err := t.Funcs(template.FuncMap{
 		"imports": func() string {
 			return importsPlaceholder
 		},

@@ -9,7 +9,7 @@ import (
 )
 
 func Example() {
-	template, err := codetemplate.Parse("mypkg.go", `// Package mypkg does neat things.
+	template, err := codetemplate.Parse(`// Package mypkg does neat things.
 {{header}}
 
 var result1 = {{.maxFn1}}(1, 2)
@@ -58,7 +58,7 @@ func main() {
 }
 
 func Example_unusedImportPruning() {
-	template, err := codetemplate.Parse("mypkg.go", `// Package mypkg does neat things.
+	template, err := codetemplate.Parse(`// Package mypkg does neat things.
 {{header}}
 
 import (
