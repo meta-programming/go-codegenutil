@@ -1,7 +1,5 @@
 # go-codegenutil
-Basic code generation utilities for Go with no dependencies outside the standard
-library (for now).
-
+Basic code generation utilities for Go metaprogrammers.
 
 The [`codegenutil`
 package](https://pkg.go.dev/github.com/meta-programming/go-codegenutil) provides
