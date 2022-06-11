@@ -1013,6 +1013,7 @@ func indirectInterface(v reflect.Value) reflect.Value {
 // the template.
 func (s *state) printValue(n parse.Node, v reflect.Value) {
 	s.at(n)
+	printableValue := s.tmpl.transformToPrintable.Load()
 	iface, ok := printableValue(v)
 	if !ok {
 		s.errorf("can't print %s of type %s", n, v.Type())
@@ -1047,6 +1048,17 @@ func printableValue(v reflect.Value) (any, bool) {
 		}
 	}
 	return v.Interface(), true
+}
+
+// printableValueRaw is an alternative to printableValue that performs no
+// transformation of the input before passing it to the printer function.
+func printableValueRaw(v reflect.Value) (any, bool) {
+	return v.Interface(), true
+}
+
+// defaultPrint is the default value printer function.
+func defaultPrint(w io.Writer, a any) (n int, err error) {
+	return fmt.Fprint(w, a)
 }
 
 type atomicValue[T any] struct {

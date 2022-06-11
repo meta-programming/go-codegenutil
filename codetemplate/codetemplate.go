@@ -46,27 +46,18 @@ func (t *Template) Execute(imports *codegenutil.FileImports, wr io.Writer, data 
 	if err != nil {
 		return fmt.Errorf("error with Clone: %w", err)
 	}
-	execT.Printer(func(w io.Writer, a ...any) (n int, err error) {
-		for _, raw := range a {
-			outStr := ""
-			switch obj := raw.(type) {
-			case codegenutil.Symbol:
-				outStr = obj.GoCode(imports)
-			case interface {
-				GoCode(*codegenutil.FileImports) string
-			}:
-				outStr = obj.GoCode(imports)
-			default:
-				outStr = fmt.Sprint(raw)
-			}
-
-			nn, err := w.Write([]byte(outStr))
-			n += nn
-			if err != nil {
-				return n, err
-			}
+	execT.Printer(false, func(w io.Writer, raw any) (n int, err error) {
+		outStr := ""
+		switch obj := raw.(type) {
+		case interface {
+			GoCode(*codegenutil.FileImports) string
+		}:
+			outStr = obj.GoCode(imports)
+		default:
+			outStr = fmt.Sprint(raw)
 		}
-		return n, nil
+
+		return w.Write([]byte(outStr))
 	})
 
 	pass1Buf := &strings.Builder{}
