@@ -1,5 +1,5 @@
 // Package unusedimports provides the import pruning features of the `goimports`
-// command in library form.
+// command in library form. Intended usage is for code generator libraries.
 package unusedimports
 
 import (

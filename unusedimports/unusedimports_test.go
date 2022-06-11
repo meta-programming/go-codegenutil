@@ -66,6 +66,25 @@ func foo() {
 }
 `,
 		},
+		{
+			filename: "blank.go",
+			src: `package foo
+
+import _ "bar"
+
+func foo() {
+	x.Boom()
+}
+`,
+			want: `package foo
+
+import _ "bar"
+
+func foo() {
+	x.Boom()
+}
+`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.filename, func(t *testing.T) {
