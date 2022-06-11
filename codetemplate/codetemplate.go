@@ -1,3 +1,21 @@
+/*
+Package codetemplate uses a fork of "text/template" to print Go code more concisely.
+
+Users of this package can write "text/template"-style templates for Go code, and
+any *codegenutil.Symbol that appears as a template variable will be formatting
+using the GoCode() function using the *codegenutil.FileImports of the file being
+generated. Furthermore, {{header}} and {{imports}} may be placed in the template
+text to output "package foo \n imports(...)" or "imports(...)" respectively.
+
+    this is an exaple
+
+The "text/template" package has some limitations that make it cumbersome to use
+for printing Go code. Namely, "fmt.Fprint" is used to print values to the output
+stream. The fmt package makes it impossible to pass extra contextual information
+to the object being printed. Because of this limitation, the codetemplate
+package uses a fork of the "text/template" package that allows using something
+other than fmt.Fprint to format objects.
+*/
 package codetemplate
 
 import (
@@ -10,12 +28,26 @@ import (
 	"github.com/meta-programming/go-codegenutil/template"
 )
 
+// Template is a Go code generation template. See Parse() for details.
 type Template struct {
 	tt                 *template.Template
 	importsPlaceholder string
 	headerPlaceholder  string
 }
 
+// Parse returns a new template by passing tmplText to the parser in
+// "text/template".
+//
+// The template is evaluated with additional "pipeline" functions:
+//
+//    imports
+//             A function that takes no arguments and outputs an imports
+//             block, a.k.a. ImportDecl in the Go spec:
+//             https://go.dev/ref/spec#ImportDecl.
+//    header
+//             A function that takes no arguments and outputs a package statement
+//             and imports block, a.ka. PackageClause and ImportDecl in the Go spec:
+//             https://go.dev/ref/spec#SourceFile.
 func Parse(name, tmplText string) (*Template, error) {
 	h := sha256.New()
 	h.Write([]byte(tmplText))
@@ -46,19 +78,7 @@ func (t *Template) Execute(imports *codegenutil.FileImports, wr io.Writer, data 
 	if err != nil {
 		return fmt.Errorf("error with Clone: %w", err)
 	}
-	execT.Printer(false, func(w io.Writer, raw any) (n int, err error) {
-		outStr := ""
-		switch obj := raw.(type) {
-		case interface {
-			GoCode(*codegenutil.FileImports) string
-		}:
-			outStr = obj.GoCode(imports)
-		default:
-			outStr = fmt.Sprint(raw)
-		}
-
-		return w.Write([]byte(outStr))
-	})
+	execT.Printer(false, t.makePrinter(imports))
 
 	pass1Buf := &strings.Builder{}
 	// Pass 1
@@ -74,4 +94,21 @@ func (t *Template) Execute(imports *codegenutil.FileImports, wr io.Writer, data 
 	}
 
 	return nil
+}
+
+func (t *Template) makePrinter(imports *codegenutil.FileImports) template.FormatFunc {
+	// TODO: Add an option to NewTemplate that allows customizing this function.
+	return func(w io.Writer, raw any) (n int, err error) {
+		outStr := ""
+		switch obj := raw.(type) {
+		case interface {
+			GoCode(*codegenutil.FileImports) string
+		}:
+			outStr = obj.GoCode(imports)
+		default:
+			outStr = fmt.Sprint(raw)
+		}
+
+		return w.Write([]byte(outStr))
+	}
 }

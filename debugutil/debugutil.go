@@ -43,7 +43,7 @@ func SideBySide(a, b string) string {
 
 		lineA, existsA := lineOrBlank(linesA, i)
 		lineB, existsB := lineOrBlank(linesB, i)
-		sep := "| "
+		sep := "|"
 		if lineA != lineB || existsA != existsB {
 			sep = "Δ"
 		}

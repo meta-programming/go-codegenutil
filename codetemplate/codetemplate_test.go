@@ -38,11 +38,11 @@ package mypkg
 import (
 	"math"
 
-	math1 "alternative/math"
+	math2 "alternative/math"
 )
 
 var myThing = math.Max
-var myThing2 = math1.Max
+var myThing2 = math2.Max
 `,
 		},
 	}

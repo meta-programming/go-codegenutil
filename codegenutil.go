@@ -262,6 +262,11 @@ type Symbol struct {
 	name string
 }
 
+// Sym is syntax sugar for AssumedPackageName(importPath).Symbol(name).
+func Sym(importPath, name string) *Symbol {
+	return AssumedPackageName(importPath).Symbol(name)
+}
+
 // Package returns the package name of the symbol.
 //
 // This should not be nil. If symbol is a local symbol for code in a file inside
@@ -370,7 +375,7 @@ func defaultSuggestPackageNames(pkg *Package, tryImportSpec func(localPackageNam
 	}
 
 	const maxIterations = 1000
-	for suffix := 1; suffix <= maxIterations; suffix++ {
+	for suffix := 2; suffix <= maxIterations; suffix++ {
 		packageName := fmt.Sprintf("%s%d", packageNameInPackageClause, suffix)
 		if tryImportSpec(packageName) {
 			return
