@@ -25,6 +25,9 @@ import (
 	"unicode/utf8"
 )
 
+// BuiltinPackage, which is the zero value for Package.
+var BuiltinPackage = &Package{}
+
 // Package identifies a package by its import path and the package name used to
 // declare the package (i.e. the "xyz" in "package xyz" statement).
 type Package struct {
@@ -36,18 +39,31 @@ type Package struct {
 //
 // This path typically identifies a package uniquely, but that is not necesarily
 // the case from the Go spec. https://go.dev/ref/spec#ImportSpec.
-func (p *Package) ImportPath() string { return p.importPath }
+func (p *Package) ImportPath() string {
+	if p.importPath == BuiltinPackage.importPath {
+		return ""
+	}
+	return p.importPath
+}
 
 // Name is the string that appears in the "package clause" of the defining go
 // file.
 //
 // See https://go.dev/ref/spec#PackageClause and
 // https://go.dev/ref/spec#PackageName.
-func (p *Package) Name() string { return p.name }
+func (p *Package) Name() string {
+	return p.name
+}
 
 // Symbol returns a new Symbol within the given package.
 func (p *Package) Symbol(idName string) *Symbol {
 	return &Symbol{p, idName}
+}
+
+// IsBuiltin returns true if the package represents the builtin package, which
+// is used for symbols like "int".
+func (p *Package) IsBuiltin() bool {
+	return p.importPath == BuiltinPackage.importPath
 }
 
 // FileImports captures information about import entries in a Go file and the
@@ -286,9 +302,10 @@ func (s *Symbol) Name() string { return s.name }
 // The Imports argument is the set of imports currently imported in the file. If
 // the symbol's import is not in the set of import specs.
 func (s *Symbol) GoCode(imports *FileImports) string {
-	if s.Package().ImportPath() == imports.filePackage.ImportPath() {
+	if s.Package().ImportPath() == imports.filePackage.ImportPath() || s.Package().IsBuiltin() {
 		return s.Name()
 	}
+
 	return imports.Add(s.Package(), "").FileLocalPackageName() + "." + s.Name()
 }
 
@@ -334,6 +351,10 @@ func AssumedPackageName(importPath string) *Package {
 	// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 	// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+	if importPath == "" {
+		return &Package{} // builtin package
+	}
 
 	// notIdentifier reports whether ch is an invalid identifier character.
 	notIdentifier := func(ch rune) bool {
