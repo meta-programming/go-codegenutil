@@ -41,7 +41,7 @@ func pkgEqual(a, b *Package) bool {
 	return a.importPath == b.importPath && a.name == b.name
 }
 
-func TestSymbol_FormatEnsureImported(t *testing.T) {
+func TestSymbol_GoCode(t *testing.T) {
 	type example struct {
 		name    string
 		sym     *Symbol
@@ -64,8 +64,8 @@ func TestSymbol_FormatEnsureImported(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.sym.FormatEnsureImported(tt.imports); got != tt.want {
-				t.Errorf("%v.FormatEnsureImported() = %q, want %q", tt.sym, got, tt.want)
+			if got := tt.sym.GoCode(tt.imports); got != tt.want {
+				t.Errorf("%v.GoCode() = %q, want %q", tt.sym, got, tt.want)
 			}
 		})
 	}

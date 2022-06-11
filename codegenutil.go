@@ -195,6 +195,12 @@ func (fi *FileImports) List() []*ImportSpec {
 
 // String prints a valid Go imports block containing all of the imports.
 func (fi *FileImports) String() string {
+	return fi.Format(false)
+}
+
+// Format returns prints a valid Go imports block containing all of the imports.
+// If true is passed, a package statement is included above the imports block.
+func (fi *FileImports) Format(includePackageStatement bool) string {
 	imports := fi.List()
 	var aliasedLines, simpleLines, blankLines []string
 
@@ -221,15 +227,13 @@ func (fi *FileImports) String() string {
 	addSection(aliasedLines)
 	addSection(blankLines)
 
-	return fmt.Sprintf("import (%s)", strings.Join(sections, "\n"))
-}
-
-func prefixLines(lines []string, prefix string) []string {
-	var out []string
-	for _, line := range lines {
-		out = append(out, "\t"+line)
+	formattedImports := fmt.Sprintf("import (%s)", strings.Join(sections, "\n"))
+	if !includePackageStatement {
+		return formattedImports
 	}
-	return out
+	return fmt.Sprintf(`package %s
+
+%s`, fi.Package().Name(), fi.String())
 }
 
 // ImportSpec is an entry within the set of imports of a Go file. It does not
@@ -272,11 +276,11 @@ func (s *Symbol) Package() *Package { return s.pkg }
 // symbol
 func (s *Symbol) Name() string { return s.name }
 
-// FormatEnsureImported formats the symbol in a given printing context.
+// GoCode formats the symbol in a given printing context.
 //
 // The Imports argument is the set of imports currently imported in the file. If
 // the symbol's import is not in the set of import specs.
-func (s *Symbol) FormatEnsureImported(imports *FileImports) string {
+func (s *Symbol) GoCode(imports *FileImports) string {
 	if s.Package().ImportPath() == imports.filePackage.ImportPath() {
 		return s.Name()
 	}

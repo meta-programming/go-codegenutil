@@ -51,11 +51,11 @@ func (t *Template) Execute(imports *codegenutil.FileImports, wr io.Writer, data 
 			outStr := ""
 			switch obj := raw.(type) {
 			case codegenutil.Symbol:
-				outStr = obj.FormatEnsureImported(imports)
+				outStr = obj.GoCode(imports)
 			case interface {
-				FormatEnsureImported(*codegenutil.FileImports) string
+				GoCode(*codegenutil.FileImports) string
 			}:
-				outStr = obj.FormatEnsureImported(imports)
+				outStr = obj.GoCode(imports)
 			default:
 				outStr = fmt.Sprint(raw)
 			}
@@ -75,10 +75,8 @@ func (t *Template) Execute(imports *codegenutil.FileImports, wr io.Writer, data 
 		return err
 	}
 
-	withImports := strings.ReplaceAll(pass1Buf.String(), t.importsPlaceholder, imports.String())
-	withHeader := strings.ReplaceAll(withImports, t.headerPlaceholder, fmt.Sprintf(`package %s
-
-%s`, imports.Package().Name(), imports.String()))
+	withImports := strings.ReplaceAll(pass1Buf.String(), t.importsPlaceholder, imports.Format(false))
+	withHeader := strings.ReplaceAll(withImports, t.headerPlaceholder, imports.Format(true))
 
 	if _, err := wr.Write([]byte(withHeader)); err != nil {
 		return err
