@@ -25,7 +25,7 @@ generated import statement.
 ```go
 import (
     "github.com/meta-programming/go-codegenutil"
-	"github.com/meta-programming/go-codegenutil/codetemplate"
+    "github.com/meta-programming/go-codegenutil/codetemplate"
 )
 
 func example() {
