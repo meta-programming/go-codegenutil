@@ -201,8 +201,9 @@
    limitations under the License.
 
 
-The AssumedPackageName funcion is copied from the golang.org/x/tools library,
-which has the following license:
+The AssumedPackageName funcion, as well as a large portion of the unusedimports
+package, is copied from the golang.org/x/tools library, which has the following
+license:
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
 
