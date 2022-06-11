@@ -8,6 +8,7 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"strconv"
 	"strings"
 
 	"github.com/meta-programming/go-codegenutil"
@@ -22,7 +23,7 @@ func PruneUnparsed(filename, src string) (string, error) {
 	fset := token.NewFileSet() // positions are relative to fset
 	f, err := parser.ParseFile(fset, filename, src, 0)
 	if err != nil {
-		return "", fmt.Errorf("parse error: %w", err)
+		return "", fmt.Errorf("parse error: %w\n%s", err, withLineNumbers(src))
 	}
 
 	if err := pruneAlreadyParsed(fset, f); err != nil {
@@ -178,4 +179,15 @@ func (p *pass) importIdentifier(imp *importInfo) string {
 		return known.name
 	}
 	return codegenutil.AssumedPackageName(imp.ImportPath).Name()
+}
+
+func withLineNumbers(str string) string {
+	lines := strings.Split(str, "\n")
+
+	widthNeeded := len(strconv.Itoa(len(lines)))
+	format := "%" + strconv.Itoa(widthNeeded) + "d: %s"
+	for i, line := range lines {
+		lines[i] = fmt.Sprintf(format, i+1, line)
+	}
+	return strings.Join(lines, "\n")
 }
