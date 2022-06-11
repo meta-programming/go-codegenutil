@@ -5,11 +5,15 @@
 package template
 
 import (
+	"fmt"
 	"io"
 	"reflect"
 	"sync"
 	"text/template/parse"
 )
+
+// FormatFunc is used to print values.
+type FormatFunc func(w io.Writer, a ...any) (n int, err error)
 
 // common holds the information shared by related templates.
 type common struct {
@@ -22,7 +26,7 @@ type common struct {
 	muFuncs    sync.RWMutex // protects parseFuncs and execFuncs
 	parseFuncs FuncMap
 	execFuncs  map[string]reflect.Value
-	formatFunc func(w io.Writer, a ...any) (n int, err error)
+	formatFunc atomicValue[FormatFunc]
 }
 
 // Template is the representation of a parsed template. The *parse.Tree
@@ -76,6 +80,7 @@ func (t *Template) init() {
 		c.parseFuncs = make(FuncMap)
 		c.execFuncs = make(map[string]reflect.Value)
 		t.common = c
+		t.formatFunc.Store(FormatFunc(fmt.Fprint))
 	}
 }
 
@@ -242,6 +247,6 @@ func (t *Template) associate(new *Template, tree *parse.Tree) bool {
 // Printer overrides the function used to write the textual representation of
 // the value to the output of the template.
 func (t *Template) Printer(printf func(w io.Writer, a ...any) (n int, err error)) *Template {
-	t.formatFunc = printf
+	t.formatFunc.Store(printf)
 	return t
 }

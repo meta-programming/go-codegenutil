@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"text/template/parse"
 
 	"github.com/meta-programming/go-codegenutil/template/internal/fmtsort"
@@ -1018,11 +1019,8 @@ func (s *state) printValue(n parse.Node, v reflect.Value) {
 	}
 	var err error
 
-	if printf := s.tmpl.formatFunc; printf == nil {
-		_, err = fmt.Fprint(s.wr, iface)
-	} else {
-		_, err = printf(s.wr, iface)
-	}
+	printf := s.tmpl.formatFunc.Load()
+	_, err = printf(s.wr, iface)
 	if err != nil {
 		s.writeError(err)
 	}
@@ -1050,3 +1048,10 @@ func printableValue(v reflect.Value) (any, bool) {
 	}
 	return v.Interface(), true
 }
+
+type atomicValue[T any] struct {
+	underlying atomic.Value
+}
+
+func (av *atomicValue[T]) Load() T   { return av.underlying.Load().(T) }
+func (av *atomicValue[T]) Store(t T) { av.underlying.Store(t) }

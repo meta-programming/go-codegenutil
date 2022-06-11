@@ -17,6 +17,7 @@ package codegenutil
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -127,6 +128,9 @@ func NewFileImports(p *Package, opts ...FileImportsOption) *FileImports {
 	return fi
 }
 
+// Package returns the Package of the file in which the imports appear.
+func (fi *FileImports) Package() *Package { return fi.filePackage }
+
 // Find returns the import spec corresponding a given package or nil if the
 // package wasn't found.
 //
@@ -167,12 +171,65 @@ func (fi *FileImports) Add(pkg *Package, alias string) *ImportSpec {
 		finalSpec = &ImportSpec{suggestedPackageName, pkg, isExplicit}
 		fi.byLocalPackageName[suggestedPackageName] = finalSpec
 		fi.byImportPath[pkg.ImportPath()] = finalSpec
-		return false // finished with suggestions
+		fi.specs = append(fi.specs, finalSpec)
+		return true // finished with suggestions
 	})
 	if finalSpec == nil {
 		panic(fmt.Errorf("no acceptable suggestion found for importing %q", pkg.ImportPath()))
 	}
 	return finalSpec
+}
+
+// List returns all of the import specs for the FileImports object.
+func (fi *FileImports) List() []*ImportSpec {
+	fi.rwMutex.RLock()
+	var out []*ImportSpec
+	out = append(out, fi.specs...)
+	fi.rwMutex.RUnlock()
+
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].PackageName().ImportPath() < out[j].PackageName().ImportPath()
+	})
+	return out
+}
+
+// String prints a valid Go imports block containing all of the imports.
+func (fi *FileImports) String() string {
+	imports := fi.List()
+	var aliasedLines, simpleLines, blankLines []string
+
+	for _, impt := range imports {
+		if impt.IsExplicit() && impt.FileLocalPackageName() == "_" {
+			blankLines = append(blankLines, fmt.Sprintf("\t%s %q", impt.FileLocalPackageName(), impt.PackageName().ImportPath()))
+		} else if impt.IsExplicit() {
+			aliasedLines = append(aliasedLines, fmt.Sprintf("\t%s %q", impt.FileLocalPackageName(), impt.PackageName().ImportPath()))
+		} else {
+			simpleLines = append(simpleLines, fmt.Sprintf("\t%q", impt.PackageName().ImportPath()))
+		}
+	}
+	sections := []string{}
+	addSection := func(lines []string) {
+		if len(lines) == 0 {
+			return
+		}
+		sections = append(sections, strings.Join(lines, "\n")+"\n")
+		if len(sections) == 1 {
+			sections[0] = "\n" + sections[0]
+		}
+	}
+	addSection(simpleLines)
+	addSection(aliasedLines)
+	addSection(blankLines)
+
+	return fmt.Sprintf("import (%s)", strings.Join(sections, "\n"))
+}
+
+func prefixLines(lines []string, prefix string) []string {
+	var out []string
+	for _, line := range lines {
+		out = append(out, "\t"+line)
+	}
+	return out
 }
 
 // ImportSpec is an entry within the set of imports of a Go file. It does not
@@ -223,7 +280,7 @@ func (s *Symbol) FormatEnsureImported(imports *FileImports) string {
 	if s.Package().ImportPath() == imports.filePackage.ImportPath() {
 		return s.Name()
 	}
-	return imports.Add(s.Package(), "").pkg.name + "." + s.Name()
+	return imports.Add(s.Package(), "").FileLocalPackageName() + "." + s.Name()
 }
 
 // AssumedPackageName returns the assumed name of the package according the
@@ -311,7 +368,7 @@ func defaultSuggestPackageNames(pkg *Package, tryImportSpec func(localPackageNam
 	const maxIterations = 1000
 	for suffix := 1; suffix <= maxIterations; suffix++ {
 		packageName := fmt.Sprintf("%s%d", packageNameInPackageClause, suffix)
-		if !tryImportSpec(packageName) {
+		if tryImportSpec(packageName) {
 			return
 		}
 	}

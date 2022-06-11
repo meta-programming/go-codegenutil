@@ -3,9 +3,9 @@
 package unusedimports
 
 import (
-	"fmt"
-	"strings"
 	"testing"
+
+	"github.com/meta-programming/go-codegenutil/debugutil"
 )
 
 func TestPruneUnparsed(t *testing.T) {
@@ -94,57 +94,8 @@ func foo() {
 				return
 			}
 			if got != tt.want {
-				t.Errorf("PruneUnparsed() generated unexpected output (want|got):\n%s", sideBySide(tt.want, got))
+				t.Errorf("PruneUnparsed() generated unexpected output (want|got):\n%s", debugutil.SideBySide(tt.want, got))
 			}
 		})
 	}
-}
-
-func sideBySide(a, b string) string {
-	linesA := strings.Split(replaceTabs(a), "\n")
-	linesB := strings.Split(replaceTabs(b), "\n")
-	lhsWidth := maxWidth(linesA)
-
-	lineOrBlank := func(lines []string, i int) string {
-		if i < len(lines) {
-			return lines[i]
-		}
-		return ""
-	}
-
-	var outLines []string
-	for i := 0; ; i++ {
-		if i >= len(linesA) && i >= len(linesB) {
-			break
-		}
-
-		lineA := lineOrBlank(linesA, i)
-		lineB := lineOrBlank(linesB, i)
-		outLines = append(outLines, fmt.Sprintf("%s|%s", pad(lineA, lhsWidth), lineB))
-	}
-	return strings.Join(outLines, "\n")
-}
-
-func replaceTabs(str string) string {
-	return strings.ReplaceAll(str, "\t", "  ")
-}
-
-func maxWidth(lines []string) int {
-	max := 0
-	for _, line := range lines {
-		l := len(line)
-		if l > max {
-			max = l
-		}
-	}
-	return max
-}
-
-func pad(line string, width int) string {
-	out := line
-	padSize := width - len(line)
-	for i := 0; i < padSize; i++ {
-		out += " "
-	}
-	return out
 }
