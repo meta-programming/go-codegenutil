@@ -26,13 +26,25 @@ import (
 
 	"github.com/meta-programming/go-codegenutil"
 	"github.com/meta-programming/go-codegenutil/template"
+	"github.com/meta-programming/go-codegenutil/unusedimports"
 )
+
+// Option parameterizes Template construction.
+type Option struct {
+	apply func(t *Template)
+}
+
+func KeepUnusedImports() Option {
+	return Option{func(t *Template) { t.formatter = nil }}
+}
 
 // Template is a Go code generation template. See Parse() for details.
 type Template struct {
 	tt                 *template.Template
 	importsPlaceholder string
 	headerPlaceholder  string
+
+	formatter func(filename, code string) (string, error)
 }
 
 // Parse returns a new template by passing tmplText to the parser in
@@ -57,6 +69,7 @@ func Parse(name, tmplText string) (*Template, error) {
 	out := &Template{
 		importsPlaceholder: importsPlaceholder,
 		headerPlaceholder:  headerPlaceholder,
+		formatter:          unusedimports.PruneUnparsed,
 	}
 	t, err := template.New(name).Funcs(template.FuncMap{
 		"imports": func() string {
@@ -89,7 +102,15 @@ func (t *Template) Execute(imports *codegenutil.FileImports, wr io.Writer, data 
 	withImports := strings.ReplaceAll(pass1Buf.String(), t.importsPlaceholder, imports.Format(false))
 	withHeader := strings.ReplaceAll(withImports, t.headerPlaceholder, imports.Format(true))
 
-	if _, err := wr.Write([]byte(withHeader)); err != nil {
+	formatted, err := withHeader, error(nil)
+	if t.formatter != nil {
+		formatted, err = t.formatter("", withHeader)
+	}
+	if err != nil {
+		return fmt.Errorf("error formatting template output: %w", err)
+	}
+
+	if _, err := wr.Write([]byte(formatted)); err != nil {
 		return err
 	}
 

@@ -24,6 +24,7 @@ func TestTemplate_Execute(t *testing.T) {
 			template: `// docs
 {{header}}
 
+// Doesn't do anything special, really.
 var myThing = {{.mysym}}
 var myThing2 = {{.mysym2}}
 `,
@@ -41,6 +42,7 @@ import (
 	math2 "alternative/math"
 )
 
+// Doesn't do anything special, really.
 var myThing = math.Max
 var myThing2 = math2.Max
 `,
