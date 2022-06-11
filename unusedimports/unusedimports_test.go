@@ -21,7 +21,49 @@ func TestPruneUnparsed(t *testing.T) {
 import "bar"
 `,
 			want: `package foo
-import "barx"
+`,
+		},
+		{
+			filename: "renamed.go",
+			src: `package foo
+import x "bar"
+`,
+			want: `package foo
+`,
+		},
+		{
+			filename: "needspruning.go",
+			src: `package foo
+import x "bar"
+
+func foo() {
+
+}
+`,
+			want: `package foo
+
+func foo() {
+
+}
+`,
+		},
+		{
+			filename: "noprune.go",
+			src: `package foo
+
+import x "bar"
+
+func foo() {
+	x.Boom()
+}
+`,
+			want: `package foo
+
+import x "bar"
+
+func foo() {
+	x.Boom()
+}
 `,
 		},
 	}
@@ -40,8 +82,8 @@ import "barx"
 }
 
 func sideBySide(a, b string) string {
-	linesA := strings.Split(a, "\n")
-	linesB := strings.Split(b, "\n")
+	linesA := strings.Split(replaceTabs(a), "\n")
+	linesB := strings.Split(replaceTabs(b), "\n")
 	lhsWidth := maxWidth(linesA)
 
 	lineOrBlank := func(lines []string, i int) string {
@@ -62,6 +104,10 @@ func sideBySide(a, b string) string {
 		outLines = append(outLines, fmt.Sprintf("%s|%s", pad(lineA, lhsWidth), lineB))
 	}
 	return strings.Join(outLines, "\n")
+}
+
+func replaceTabs(str string) string {
+	return strings.ReplaceAll(str, "\t", "  ")
 }
 
 func maxWidth(lines []string) int {

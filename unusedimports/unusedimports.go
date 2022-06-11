@@ -14,6 +14,9 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 )
 
+// PruneUnparsed parses a Go file and removes unused imports.
+//
+// The filename argument is used only for printing error messages.
 func PruneUnparsed(filename, src string) (string, error) {
 	// Create the AST by parsing src.
 	fset := token.NewFileSet() // positions are relative to fset
