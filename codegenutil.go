@@ -17,6 +17,7 @@ package codegenutil
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -404,3 +405,18 @@ func defaultSuggestPackageNames(pkg *Package, tryImportSpec func(localPackageNam
 	}
 	// Nothing accepted - give up without panic.
 }
+
+const (
+	// A letter according to the go spec: https://go.dev/ref/spec#unicode_letter
+	// See https://github.com/google/re2/wiki/Syntax and
+	//letterREConst        = `(?:_|\p{L})`
+	letterREConst        = `[_\p{L}]`
+	letterOrDigitREConst = `[_\p{L}0-9]`
+	// identifierRegexpConst is an expression for an identifier.
+	identifierRegexpConst = `(?:` + letterREConst + letterOrDigitREConst + `*)`
+)
+
+var identifierRegexp = regexp.MustCompile(`^` + identifierRegexpConst + `$`)
+
+// IsValidIdentifier reports if the argument is a valid Go identifier.
+func IsValidIdentifier(arg string) bool { return identifierRegexp.MatchString(arg) }

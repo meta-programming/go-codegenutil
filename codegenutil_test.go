@@ -4,6 +4,27 @@ import (
 	"testing"
 )
 
+func TestIdentifierRegexp(t *testing.T) {
+	tests := []struct {
+		id   string
+		want bool
+	}{
+		{"helloWorld123", true},
+		{"_helloWorld123", true},
+		{"a", true},
+		{"_ó3", true},
+		{"b_b", true},
+		{"A_b", true},
+		{"A b", false},
+		{"A-b", false},
+	}
+	for _, tt := range tests {
+		if got, want := identifierRegexp.MatchString(tt.id), tt.want; got != want {
+			t.Errorf("%q got is regexp = %v, want = %v", tt.id, got, want)
+		}
+	}
+}
+
 func TestAssumedPackageName(t *testing.T) {
 	tests := []struct {
 		importPath string
